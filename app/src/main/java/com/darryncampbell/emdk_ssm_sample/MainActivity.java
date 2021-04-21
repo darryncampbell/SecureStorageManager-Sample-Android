@@ -9,12 +9,9 @@ import android.content.ContentValues;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 import android.content.pm.SigningInfo;
-import android.database.ContentObserver;
 import android.database.Cursor;
-import android.database.DataSetObserver;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -29,17 +26,15 @@ import org.apache.commons.codec.binary.Hex;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    //  todo Add all defined packages & signatures to UI
-    //  todo in Query, report user friendly output form
-    //  todo I have a bug where I can't insert even after deleting all data... why??? It works fine with only one app.  How does multiple apps work with the where clause?  Or maybe it's related to the Delete Content provider URI
-    //       todo It works if call delete twice, once for each content provider!!
-    //       todo Question: How is it expected to work?
-    //  todo Logging (with app name)
-    //  todo create a new flavour to the build script to generate another app, signed with the same key, to demo how to share between apps
-    //  todo Encryption of inserted data
-    //  todo Remove other todos & tidy code.
-    //  todo Improve commenting
-    //  todo Update Readme
+    //  todo Question: To delete a name/value inserted and shared between two apps I need to call delete twice, once for each content provider, is this how it is supposed to work?
+    //  todo Question: Why do I NEED to specify the data_persist_required element in query selection clause?  If I don't specify this, the cursor query returns nothing.  Am I using it correctly?
+    //  todo Question: How can we delete a specific value?
+    //  todo Question: When will multi-instance be implemented?
+    //  todo Logging
+    //  todo Test exchanging data between the two app flavours
+    //  todo Test persistence
+    //  todo Encryption of inserted data & reading it back
+    //  todo Tidy code & Update Readme
 
     private static final String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";
     private static final String COLUMN_ORIG_APP_PACKAGE = "orig_app_package";
@@ -52,7 +47,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String COLUMN_MULTI_INSTANCE_REQUIRED = "multi_instance_required";
 
     private String currentPackage = "";
-    private String currentPackageSignature = "";
     Uri cpUri;
     TextView txtName;
     TextView txtValue;
@@ -70,12 +64,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         getSupportActionBar().setCustomView(R.layout.header_layout);
         dataStorageResult = findViewById(R.id.txtDataStorageResult);
         queryResult = findViewById(R.id.txtQueryResult);
-        TextView txtCurrentPackage = findViewById(R.id.txtCurrentPackage);
         currentPackage = getPackageName();
-        currentPackageSignature = getCurrentPackageSignature();
-        txtCurrentPackage.setText(currentPackage);
-        TextView txtCurrentPackageSig = findViewById(R.id.txtCurrentPackageSig);
-        txtCurrentPackageSig.setText(currentPackageSignature);
+
         cpUri = Uri.parse(AUTHORITY);
         //  Check the content provider will resolve - useful for root causing issues.
         ContentProviderClient cpClient = getContentResolver().acquireContentProviderClient(cpUri);
@@ -94,7 +84,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnDelete.setOnClickListener(this);
         Button btnQuery = findViewById(R.id.btnQuery);
         btnQuery.setOnClickListener(this);
-
         txtName = findViewById(R.id.editName);
         txtValue = findViewById(R.id.editValue);
         Switch switchInputDataFormat = findViewById(R.id.switchEncryptInput);
@@ -103,6 +92,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         spinnerOutputFormat.setEnabled(false);
         switchPersistence = findViewById(R.id.switchPersistence);
 
+        populatePackagesUI();
+    }
+
+    private void populatePackagesUI() {
+        TextView txtPackage1 = findViewById(R.id.txtPackage1);
+        TextView txtPackage2 = findViewById(R.id.txtPackage2);
+        TextView txtPackageSig1 = findViewById(R.id.txtSignature1);
+        TextView txtPackageSig2 = findViewById(R.id.txtSignature2);
+        txtPackage1.setText(currentPackage);
+        txtPackage2.setText(BuildConfig.OtherAppId);
+        txtPackageSig1.setText(getCurrentPackageSignature());
+        txtPackageSig2.setText(getCurrentPackageSignature());   //  This is the same because I am building them both with the same developer key
     }
 
     private void insert()
@@ -142,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
             }
             values.put(COLUMN_DATA_OUTPUT_FORM, outputFormat);
-            values.put(COLUMN_MULTI_INSTANCE_REQUIRED, "false"); //  todo read from UI (not implemented yet)
+            values.put(COLUMN_MULTI_INSTANCE_REQUIRED, "false"); //  Not implemented yet
 
             Uri createdRow = getContentResolver().insert(cpUri, values);
             String message = "Inserted item at: " + createdRow.toString();
@@ -198,12 +199,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         try{
             String persistData = switchPersistence.isChecked() ? "true" : "false";
             Uri cpUriDelete = Uri.parse(AUTHORITY + "/[" + currentPackage + "]");
-            //  todo understand the requriement around specifying persistence
             String whereClauseAll = null;
             //  Other where clause examples:
             String whereClauseAllWithSelectedPersistence = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_PERSIST_REQUIRED + " = '" + persistData + "'";
             String whereClauseSpecificKey = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_NAME + " = 'key'";
-            //  todo How can we delete a specific value?
             String whereClauseSpecificValue = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_VALUE + " = 'data'";
             int rowsAffected = getContentResolver().delete(cpUriDelete, whereClauseAll , null);
             dataStorageResult.setText("Deleted " + rowsAffected + " rows");
@@ -220,7 +219,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Uri cpUriQuery = Uri.parse(AUTHORITY + "/[" + currentPackage + "]");
         String persistData = switchPersistence.isChecked() ? "true" : "false";
 
-        //  todo question: Why do I NEED to specify the data_persist_required element here?  Otherwise the cursor query returns nothing.
         String selection = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "'" + "AND " + "data_persist_required = '" + persistData + "'";
         Cursor cursor = null;
         try {
@@ -236,12 +234,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 while (!cursor.isAfterLast()) {
                     String record = "\n";
                     record += "Original app: " + cursor.getString(cursor.getColumnIndex(COLUMN_ORIG_APP_PACKAGE)) + "\n";
-                    //  todo can you send the same data to multiple apps?
                     record += "Target app: " + cursor.getString(cursor.getColumnIndex(COLUMN_ORIG_APP_PACKAGE)) + "\n";
                     record += "Data Name : " + cursor.getString(cursor.getColumnIndex(COLUMN_DATA_NAME)) + "\n";
                     record += "Data Value: " + cursor.getString(cursor.getColumnIndex(COLUMN_DATA_VALUE)) + "\n";
                     record += "Input  form: " + convertInputForm(cursor.getString(cursor.getColumnIndex(COLUMN_DATA_INPUT_FORM))) + "\n";
-                    record += "Output form: " + cursor.getString(cursor.getColumnIndex(COLUMN_DATA_OUTPUT_FORM)) + "\n";
+                    record += "Output form: " + convertOutputForm(cursor.getString(cursor.getColumnIndex(COLUMN_DATA_OUTPUT_FORM))) + "\n";
                     record += "Persistent?: " + cursor.getString(cursor.getColumnIndex(COLUMN_DATA_PERSIST_REQUIRED)) + "\n";
                     queryResults += record;
                     cursor.moveToNext();
@@ -269,7 +266,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else
             return "unknown";
     }
-
+    private String convertOutputForm(String outputForm)
+    {
+        if (outputForm.equals("1"))
+            return "plain text";
+        else if (outputForm.equals("2"))
+            return "encrypted";
+        else if (outputForm.equals("3"))
+            return "keystrokes";
+        else
+            return "unknown";
+    }
 
     /*
      * Get string as JSON array of target package name and base64 signature.
@@ -277,12 +284,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @return - String as JSON array of target package name and base64 signature
      * */
     private String getAuthorizedPackages() {
-        //  todo - get this working - UNTESTED
         String otherID = BuildConfig.OtherAppId;
         String targetAppPackageContent =
                 "{\"pkgs_sigs\": [" +
-                        "{\"pkg\":\"" + currentPackage + "\",\"sig\":\"" + currentPackageSignature + "\"}," +
-                        "{\"pkg\":\"" + otherID + "\",\"sig\":\"" + currentPackageSignature + "\"}" +
+                        "{\"pkg\":\"" + currentPackage + "\",\"sig\":\"" + getCurrentPackageSignature() + "\"}," +
+                        "{\"pkg\":\"" + otherID + "\",\"sig\":\"" + getCurrentPackageSignature() + "\"}" +
                         "]}";
         return targetAppPackageContent;
     }

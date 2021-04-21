@@ -20,8 +20,9 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
-        android:orientation="vertical"
+        android:layout_marginBottom="8dp"
         android:background="@color/zebraWhite"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -39,17 +40,17 @@
             app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
-            android:id="@+id/lblCurrentPackage"
+            android:id="@+id/lblPackage1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
-            android:text="Package:"
+            android:text="Package 1:"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/lblPackages" />
 
         <TextView
-            android:id="@+id/txtCurrentPackage"
+            android:id="@+id/txtPackage1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
@@ -58,48 +59,82 @@
             android:autoSizeMinTextSize="12sp"
             android:autoSizeStepGranularity="2sp"
             android:autoSizeTextType="uniform"
+            android:text="Package name 1"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/lblCurrentPackage"
-            app:layout_constraintTop_toTopOf="@id/lblCurrentPackage" />
+            app:layout_constraintStart_toEndOf="@+id/lblPackage1"
+            app:layout_constraintTop_toTopOf="@id/lblPackage1" />
 
         <TextView
-            android:id="@+id/lblCurrentPackageSig"
+            android:id="@+id/lblSignature1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
-            android:text="Signature:"
+            android:text="Sig 1:"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/lblCurrentPackage"/>
+            app:layout_constraintTop_toBottomOf="@id/lblPackage1" />
 
         <TextView
-            android:id="@+id/txtCurrentPackageSig"
+            android:id="@+id/txtSignature1"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:ellipsize="end"
             android:maxLines="1"
             android:scrollHorizontally="true"
             android:text="Package Signature"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@id/lblCurrentPackageSig"
-            app:layout_constraintTop_toTopOf="@id/lblCurrentPackageSig" />
+            app:layout_constraintStart_toEndOf="@+id/lblPackage1"
+            app:layout_constraintTop_toTopOf="@id/lblSignature1" />
 
         <TextView
-            android:id="@+id/txtPlaceholder"
+            android:id="@+id/txtSignature2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="Package Signature"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/lblPackage2"
+            app:layout_constraintTop_toTopOf="@+id/lblSignature2" />
+
+        <TextView
+            android:id="@+id/lblPackage2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginBottom="8dp"
-            android:text="TODO: MORE PACKAGES HERE"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:text="Package 2:"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/lblCurrentPackageSig" />
+            app:layout_constraintTop_toBottomOf="@+id/lblSignature1" />
+
+        <TextView
+            android:id="@+id/lblSignature2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:text="Sig 2:"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/lblPackage2" />
+
+        <TextView
+            android:id="@+id/txtPackage2"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:autoSizeMaxTextSize="100sp"
+            android:autoSizeMinTextSize="12sp"
+            android:autoSizeStepGranularity="2sp"
+            android:autoSizeTextType="uniform"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Package name 2"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@+id/lblPackage2"
+            app:layout_constraintTop_toTopOf="@id/lblPackage2" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

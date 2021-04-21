@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">EMDK SSM Sample</string>
     <string-array name="outputForms">
         <item>Plain Text</item>
         <item>Encrypted</item>

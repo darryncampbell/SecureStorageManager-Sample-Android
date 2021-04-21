@@ -22,6 +22,24 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    flavorDimensions "instance"
+    productFlavors {
+        instanceA {
+            applicationIdSuffix ".a"
+            versionNameSuffix "-a"
+            buildConfigField "String", "OtherAppId", '\"com.darryncampbell.emdk_ssm_sample.b\"'
+            buildConfigField "String", "AppName", '\"EMDK SSM Instance A\"'
+            resValue "string", "app_name", "EMDK SSM Sample A"
+        }
+        instanceB {
+            applicationIdSuffix ".b"
+            versionNameSuffix "-b"
+            buildConfigField "String", "OtherAppId", '\"com.darryncampbell.emdk_ssm_sample.a\"'
+            resValue "string", "app_name", "EMDK SSM Sample B"
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8

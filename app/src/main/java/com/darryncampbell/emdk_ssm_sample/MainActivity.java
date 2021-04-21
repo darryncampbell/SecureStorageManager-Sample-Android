@@ -2,6 +2,8 @@ package com.darryncampbell.emdk_ssm_sample;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
+import android.app.ActionBar;
 import android.content.ContentProviderClient;
 import android.content.ContentValues;
 import android.content.pm.PackageManager;
@@ -19,7 +21,6 @@ import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
@@ -28,12 +29,15 @@ import org.apache.commons.codec.binary.Hex;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
+    //  todo Add all defined packages & signatures to UI
+    //  todo in Query, report user friendly output form
+    //  todo I have a bug where I can't insert even after deleting all data... why??? It works fine with only one app.  How does multiple apps work with the where clause?  Or maybe it's related to the Delete Content provider URI
+    //       todo It works if call delete twice, once for each content provider!!
+    //       todo Question: How is it expected to work?
     //  todo Logging (with app name)
+    //  todo create a new flavour to the build script to generate another app, signed with the same key, to demo how to share between apps
     //  todo Encryption of inserted data
-    //  todo create ER barcode for repository
     //  todo Remove other todos & tidy code.
-    //  todo Update UI to match Zebra standards
-    //  todo create pre-compiled app with different name (new branch) signed with key added to this app, to demo how to share between apps
     //  todo Improve commenting
     //  todo Update Readme
 
@@ -57,10 +61,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Switch switchPersistence;
     private final String LOG_TAG = "SSM";
 
+    @SuppressLint("WrongConstant")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
+        getSupportActionBar().setCustomView(R.layout.header_layout);
         dataStorageResult = findViewById(R.id.txtDataStorageResult);
         queryResult = findViewById(R.id.txtQueryResult);
         TextView txtCurrentPackage = findViewById(R.id.txtCurrentPackage);
@@ -95,7 +102,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Spinner spinnerOutputFormat = findViewById(R.id.spinnerOutputDataFormat);
         spinnerOutputFormat.setEnabled(false);
         switchPersistence = findViewById(R.id.switchPersistence);
-
 
     }
 
@@ -190,10 +196,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     {
         //  https://developer.android.com/reference/android/content/ContentProvider#delete(android.net.Uri,%20java.lang.String,%20java.lang.String[])
         try{
+            String persistData = switchPersistence.isChecked() ? "true" : "false";
             Uri cpUriDelete = Uri.parse(AUTHORITY + "/[" + currentPackage + "]");
+            //  todo understand the requriement around specifying persistence
             String whereClauseAll = null;
             //  Other where clause examples:
-            String whereClauseNonPersistentOnly = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_PERSIST_REQUIRED + " = 'false'";
+            String whereClauseAllWithSelectedPersistence = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_PERSIST_REQUIRED + " = '" + persistData + "'";
             String whereClauseSpecificKey = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_NAME + " = 'key'";
             //  todo How can we delete a specific value?
             String whereClauseSpecificValue = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_VALUE + " = 'data'";
@@ -224,9 +232,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         try {
             if (cursor != null && cursor.moveToFirst()) {
                 StringBuilder strBuild = new StringBuilder();
-                String queryResults = "Entries found: " + cursor.getCount() + "\n\n";
+                String queryResults = "Entries found: " + cursor.getCount() + "\n";
                 while (!cursor.isAfterLast()) {
-                    String record = "";
+                    String record = "\n";
                     record += "Original app: " + cursor.getString(cursor.getColumnIndex(COLUMN_ORIG_APP_PACKAGE)) + "\n";
                     //  todo can you send the same data to multiple apps?
                     record += "Target app: " + cursor.getString(cursor.getColumnIndex(COLUMN_ORIG_APP_PACKAGE)) + "\n";
@@ -235,7 +243,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     record += "Input  form: " + convertInputForm(cursor.getString(cursor.getColumnIndex(COLUMN_DATA_INPUT_FORM))) + "\n";
                     record += "Output form: " + cursor.getString(cursor.getColumnIndex(COLUMN_DATA_OUTPUT_FORM)) + "\n";
                     record += "Persistent?: " + cursor.getString(cursor.getColumnIndex(COLUMN_DATA_PERSIST_REQUIRED)) + "\n";
-                    record += "\n";
                     queryResults += record;
                     cursor.moveToNext();
                 }
@@ -270,20 +277,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * @return - String as JSON array of target package name and base64 signature
      * */
     private String getAuthorizedPackages() {
-
-        String targetAppPackageContent = "{\"pkgs_sigs\": " +
-                "[" +
-                "{" +
-                "\"pkg\":" +
-                "\"" +
-                currentPackage +
-                "\"" +
-                "," +
-                "\"sig\":" +
-                "\"" +
-                currentPackageSignature +
-                "\"" +
-                "}]}";
+        //  todo - get this working - UNTESTED
+        String otherID = BuildConfig.OtherAppId;
+        String targetAppPackageContent =
+                "{\"pkgs_sigs\": [" +
+                        "{\"pkg\":\"" + currentPackage + "\",\"sig\":\"" + currentPackageSignature + "\"}," +
+                        "{\"pkg\":\"" + otherID + "\",\"sig\":\"" + currentPackageSignature + "\"}" +
+                        "]}";
         return targetAppPackageContent;
     }
 

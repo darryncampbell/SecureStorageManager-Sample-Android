@@ -12,6 +12,7 @@ import android.content.pm.SigningInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.security.keystore.KeyProperties;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -23,18 +24,22 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     //  todo Question: To delete a name/value inserted and shared between two apps I need to call delete twice, once for each content provider, is this how it is supposed to work?
     //  todo Question: Why do I NEED to specify the data_persist_required element in query selection clause?  If I don't specify this, the cursor query returns nothing.  Am I using it correctly?
-    //  todo Question: How can we delete a specific value?
+    //  todo Question: The TARGET_APP column during query() returns a single package but the TARGET_APP column in insert takes multiple packages.
+    //  todo Question: Is Encryption implemented fully?  Would need to see a code sample of this rather than use trial and error.
     //  todo Question: When will multi-instance be implemented?
-    //  todo Logging
-    //  todo Test exchanging data between the two app flavours
-    //  todo Test persistence
-    //  todo Encryption of inserted data & reading it back
-    //  todo Tidy code & Update Readme
+    //  todo Update Readme
 
     private static final String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";
     private static final String COLUMN_ORIG_APP_PACKAGE = "orig_app_package";
@@ -45,6 +50,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String COLUMN_DATA_OUTPUT_FORM = "data_output_form";
     private static final String COLUMN_DATA_PERSIST_REQUIRED = "data_persist_required";
     private static final String COLUMN_MULTI_INSTANCE_REQUIRED = "multi_instance_required";
+    private static final String COLUMN_ENCRYPTED_KEY = "data_input_encrypted_key";
+    private static final String SSM_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwE1qxpfNZVGq3wfPp3AqSeSpCPi3NUC1cCBuh5nkPvC3TfYHiozsy3gBYyUoYWIoAYlgypehqLIQfdHTrLpsVbS1BW6mnv76WvYwmaGrGfHzi50ETA8bFDwkrboG3jcHnvDJPH904BdU5eMrsq1o+BDmTmF/OAm1rJPohb8mukWhjZ+o6OW6iNhO28IDRb26pKuTu6sckHn8I1I51bl44qaxq55A4wVR4mHEZL0EK/q2hY0Iqcak2dA8w8N0nJrWzbIbp5FeT/WyGO2pure7UxKEZfE5pkewPfcHSGpR+0sbdCMaw6KrDpC5jusry4PjFw92sS/Huywv6/pv7WVPmwIDAQAB";
 
     private String currentPackage = "";
     Uri cpUri;
@@ -114,12 +121,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (key.trim().equals(""))
             {
                 dataStorageResult.setText("Name cannot be blank");
+                Log.e(LOG_TAG, "Name cannot be blank");
                 return;
             }
             String value = txtValue.getText().toString();
             if (value.trim().equals(""))
             {
                 dataStorageResult.setText("Value cannot be blank");
+                Log.e(LOG_TAG, "Value cannot be blank");
                 return;
             }
             ContentValues values = new ContentValues();
@@ -129,7 +138,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String persistData = switchPersistence.isChecked() ? "true" : "false";
             values.put(COLUMN_DATA_PERSIST_REQUIRED, persistData);
             Switch switchInputDataFormat = findViewById(R.id.switchEncryptInput);
-            String inputDataFormat = switchInputDataFormat.isChecked() ? "2" : "1";
+            boolean encryptData = switchInputDataFormat.isChecked();
+            String inputDataFormat = encryptData ? "2" : "1";
+            if (encryptData)
+            {
+                //  todo create AES secret key
+                SecretKey secretKey = getRandomKey(KeyProperties.KEY_ALGORITHM_AES);
+                //  todo Encrypt data using secret key
+                final Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+                cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+                byte[] iv = cipher.getIV();
+                byte[] encryption = cipher.doFinal(value.getBytes("UTF-8"));
+                //  todo Encrypt secure key using SSM public key
+                //  todo Insert encrypted secret key into SS query
+                values.put(COLUMN_ENCRYPTED_KEY, "REPLACE ME: Encrypted Secret Key");
+            }
             values.put(COLUMN_DATA_INPUT_FORM, inputDataFormat); //plain text =1
             Spinner spinnerOutputFormat = findViewById(R.id.spinnerOutputDataFormat);
             String outputFormat = "1"; //  plain text
@@ -166,12 +189,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (key.trim().equals(""))
             {
                 dataStorageResult.setText("Name cannot be blank");
+                Log.e(LOG_TAG, "Name cannot be blank");
                 return;
             }
             String value = txtValue.getText().toString();
             if (value.trim().equals(""))
             {
                 dataStorageResult.setText("Value cannot be blank");
+                Log.e(LOG_TAG, "Value cannot be blank");
                 return;
             }
             ContentValues values = new ContentValues();
@@ -201,11 +226,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Uri cpUriDelete = Uri.parse(AUTHORITY + "/[" + currentPackage + "]");
             String whereClauseAll = null;
             //  Other where clause examples:
-            String whereClauseAllWithSelectedPersistence = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_PERSIST_REQUIRED + " = '" + persistData + "'";
             String whereClauseSpecificKey = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_NAME + " = 'key'";
-            String whereClauseSpecificValue = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_VALUE + " = 'data'";
             int rowsAffected = getContentResolver().delete(cpUriDelete, whereClauseAll , null);
-            dataStorageResult.setText("Deleted " + rowsAffected + " rows");
+            String message = "Deleted " + rowsAffected + " rows";
+            dataStorageResult.setText(message);
+            Log.i(LOG_TAG, message);
         }catch(Exception e){
             String message = "Delete - error: " + e.getMessage();
             Log.e(LOG_TAG, message);
@@ -225,6 +250,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             cursor = getContentResolver().query(cpUriQuery, null, selection, null, null);
         } catch (Exception e) {
             Log.e(LOG_TAG, "Cursor Query Error: " + e.getMessage());
+            return;
         }
 
         try {
@@ -234,7 +260,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 while (!cursor.isAfterLast()) {
                     String record = "\n";
                     record += "Original app: " + cursor.getString(cursor.getColumnIndex(COLUMN_ORIG_APP_PACKAGE)) + "\n";
-                    record += "Target app: " + cursor.getString(cursor.getColumnIndex(COLUMN_ORIG_APP_PACKAGE)) + "\n";
+                    record += "Target app: " + cursor.getString(cursor.getColumnIndex(COLUMN_TARGET_APP_PACKAGE)) + "\n";
                     record += "Data Name : " + cursor.getString(cursor.getColumnIndex(COLUMN_DATA_NAME)) + "\n";
                     record += "Data Value: " + cursor.getString(cursor.getColumnIndex(COLUMN_DATA_VALUE)) + "\n";
                     record += "Input  form: " + convertInputForm(cursor.getString(cursor.getColumnIndex(COLUMN_DATA_INPUT_FORM))) + "\n";
@@ -246,6 +272,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.d(LOG_TAG, "Query data: " + strBuild);
                 queryResult.setText(queryResults);
             } else {
+                Log.i(LOG_TAG, "No Records Found");
                 queryResult.setText("No Records Found");
             }
         } catch (Exception e) {
@@ -278,13 +305,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return "unknown";
     }
 
-    /*
-     * Get string as JSON array of target package name and base64 signature.
-     * Param - target package name as string
-     * @return - String as JSON array of target package name and base64 signature
-     * */
     private String getAuthorizedPackages() {
         String otherID = BuildConfig.OtherAppId;
+        //  Return a JSON structure defining the package names and signatures that have permission to access the SSM data
         String targetAppPackageContent =
                 "{\"pkgs_sigs\": [" +
                         "{\"pkg\":\"" + currentPackage + "\",\"sig\":\"" + getCurrentPackageSignature() + "\"}," +
@@ -293,9 +316,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return targetAppPackageContent;
     }
 
+    //  This is the signing certificate for the package, expressed in Base 64.
+    //  See also https://github.com/darryncampbell/MX-SignatureAuthentication-Demo
     private String getCurrentPackageSignature() {
         Signature[] sigs;
-        SigningInfo signingInfo = new SigningInfo();
+        SigningInfo signingInfo;
         try {
             signingInfo = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNING_CERTIFICATES).signingInfo;
             sigs = signingInfo.getApkContentsSigners();
@@ -303,13 +328,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 String sigAsHex = sigs[0].toCharsString();
                 byte[] decodedHex = Hex.decodeHex(sigAsHex);
                 byte[] encodedHexB64 = Base64.encodeBase64(decodedHex);
+                Log.d(LOG_TAG, "Signature: " + encodedHexB64);
                 return new String(encodedHexB64);
             } else
+            {
+                Log.e(LOG_TAG, "Could not get signature");
                 return "Could not get signature";
+            }
         } catch (PackageManager.NameNotFoundException e) {
+            Log.e(LOG_TAG, "Could not get signature");
             return "Could not get signature";
         }
          catch (DecoderException e) {
+            Log.e(LOG_TAG, "Could not get signature");
             return "Could not get signature";
         }
     }
@@ -325,4 +356,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if (view.getId() == R.id.btnQuery)
             query();
     }
+
+    private SecretKey getRandomKey(String algorithmType)
+    {
+        SecureRandom rand = new SecureRandom();
+        KeyGenerator generator;
+        try {
+            generator = KeyGenerator.getInstance(algorithmType);
+            generator.init(128, rand);
+            SecretKey mSecretKey = generator.generateKey();
+            return mSecretKey;
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }

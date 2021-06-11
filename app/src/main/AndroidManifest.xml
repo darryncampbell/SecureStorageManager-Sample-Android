@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.darryncampbell.emdk_ssm_sample">
+    package="com.darryncampbell.ssm_sample">
 
     <uses-permission android:name="com.zebra.securestoragemanager.securecontentprovider.PERMISSION.WRITE"/>
     <uses-permission android:name="com.zebra.securestoragemanager.securecontentprovider.PERMISSION.READ"/>
@@ -14,7 +14,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.EMDKSSMSample">
+        android:theme="@style/Theme.SSMSample">
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

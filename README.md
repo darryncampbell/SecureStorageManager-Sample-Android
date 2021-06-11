@@ -1,4 +1,4 @@
-# EMDK-SSM-Sample
+# SecureStorageManager-Sample-Android
 Sample application to show how to use Zebra's Secure Storage Manager
 
 ```xml

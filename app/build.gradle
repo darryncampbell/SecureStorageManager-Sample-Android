@@ -4,10 +4,10 @@ plugins {
 
 android {
     compileSdkVersion 30
-    buildToolsVersion "30.0.0"
+    buildToolsVersion "30.0.2"
 
     defaultConfig {
-        applicationId "com.darryncampbell.emdk_ssm_sample"
+        applicationId "com.darryncampbell.ssm_sample"
         minSdkVersion 30
         targetSdkVersion 30
         versionCode 1
@@ -28,15 +28,16 @@ android {
         instanceA {
             applicationIdSuffix ".a"
             versionNameSuffix "-a"
-            buildConfigField "String", "OtherAppId", '\"com.darryncampbell.emdk_ssm_sample.b\"'
-            buildConfigField "String", "AppName", '\"EMDK SSM Instance A\"'
-            resValue "string", "app_name", "EMDK SSM Sample A"
+            buildConfigField "String", "OtherAppId", '\"com.darryncampbell.ssm_sample.b\"'
+            buildConfigField "String", "AppName", '\"SSM Instance A\"'
+            resValue "string", "app_name", "SSM Sample A"
         }
         instanceB {
             applicationIdSuffix ".b"
             versionNameSuffix "-b"
-            buildConfigField "String", "OtherAppId", '\"com.darryncampbell.emdk_ssm_sample.a\"'
-            resValue "string", "app_name", "EMDK SSM Sample B"
+            buildConfigField "String", "OtherAppId", '\"com.darryncampbell.ssm_sample.a\"'
+            buildConfigField "String", "AppName", '\"SSM Instance B\"'
+            resValue "string", "app_name", "SSM Sample B"
         }
     }
 

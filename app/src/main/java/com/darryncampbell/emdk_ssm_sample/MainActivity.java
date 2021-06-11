@@ -1,4 +1,4 @@
-package com.darryncampbell.emdk_ssm_sample;
+package com.darryncampbell.ssm_sample;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;

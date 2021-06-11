@@ -3,7 +3,6 @@ package com.darryncampbell.ssm_sample;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 
-import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.content.ContentProviderClient;
 import android.content.ContentValues;
@@ -63,7 +62,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     Switch switchPersistence;
     private final String LOG_TAG = "SSM";
 
-    @SuppressLint("WrongConstant")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

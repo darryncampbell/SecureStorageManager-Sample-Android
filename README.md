@@ -11,3 +11,5 @@ Sample application to show how to use Zebra's Secure Storage Manager
     <provider android:authorities="com.zebra.securestoragemanager.securecontentprovider" />
 </queries>
 ```
+
+`gradlew build`

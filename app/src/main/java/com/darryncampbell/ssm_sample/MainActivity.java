@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //  todo Question: The TARGET_APP column during query() returns a single package but the TARGET_APP column in insert takes multiple packages.
     //  todo Question: Is Encryption implemented fully?  Would need to see a code sample of this rather than use trial and error.
     //  todo Question: When will multi-instance be implemented?
+    //  todo Plans to persist files?  Per George, yes, this will be done.  Implement this.
     //  todo Update Readme
 
     private static final String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";

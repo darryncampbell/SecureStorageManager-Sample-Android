@@ -23,9 +23,13 @@ import android.widget.TextView;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.SerializationUtils;
 
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.spec.X509EncodedKeySpec;
 
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -37,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //  todo Question: To delete a name/value inserted and shared between two apps I need to call delete twice, once for each content provider, is this how it is supposed to work?
     //  todo Question: Why do I NEED to specify the data_persist_required element in query selection clause?  If I don't specify this, the cursor query returns nothing.  Am I using it correctly?
     //  todo Question: The TARGET_APP column during query() returns a single package but the TARGET_APP column in insert takes multiple packages.
-    //  todo Question: Is Encryption implemented fully?  Would need to see a code sample of this rather than use trial and error.
+    //  todo Question: Is Encryption implemented fully?  Would need to see a code sample of this rather than use trial and error.  (Thought I did my best)
     //  todo Question: When will multi-instance be implemented?
     //  todo Plans to persist files?  Per George, yes, this will be done.  Implement this.
     //  todo Update Readme
@@ -53,6 +57,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String COLUMN_MULTI_INSTANCE_REQUIRED = "multi_instance_required";
     private static final String COLUMN_ENCRYPTED_KEY = "data_input_encrypted_key";
     private static final String SSM_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwE1qxpfNZVGq3wfPp3AqSeSpCPi3NUC1cCBuh5nkPvC3TfYHiozsy3gBYyUoYWIoAYlgypehqLIQfdHTrLpsVbS1BW6mnv76WvYwmaGrGfHzi50ETA8bFDwkrboG3jcHnvDJPH904BdU5eMrsq1o+BDmTmF/OAm1rJPohb8mukWhjZ+o6OW6iNhO28IDRb26pKuTu6sckHn8I1I51bl44qaxq55A4wVR4mHEZL0EK/q2hY0Iqcak2dA8w8N0nJrWzbIbp5FeT/WyGO2pure7UxKEZfE5pkewPfcHSGpR+0sbdCMaw6KrDpC5jusry4PjFw92sS/Huywv6/pv7WVPmwIDAQAB";
+    private static final String SSM_PUBLIC_KEY2 = "-----BEGIN RSA PUBLIC KEY-----\n" +
+            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwE1qxpfNZVGq3wfPp3AqSeSpCPi3NUC1cCBuh5nkPvC3TfYHiozsy3gBYyUoYWIoAYlgypehqLIQfdHTrLpsVbS1BW6mnv76WvYwmaGrGfHzi50ETA8bFDwkrboG3jcHnvDJPH904BdU5eMrsq1o+BDmTmF/OAm1rJPohb8mukWhjZ+o6OW6iNhO28IDRb26pKuTu6sckHn8I1I51bl44qaxq55A4wVR4mHEZL0EK/q2hY0Iqcak2dA8w8N0nJrWzbIbp5FeT/WyGO2pure7UxKEZfE5pkewPfcHSGpR+0sbdCMaw6KrDpC5jusry4PjFw92sS/Huywv6/pv7WVPmwIDAQAB\n" +
+            "-----END RSA PUBLIC KEY-----";
 
     private String currentPackage = "";
     Uri cpUri;
@@ -95,7 +102,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         txtName = findViewById(R.id.editName);
         txtValue = findViewById(R.id.editValue);
         Switch switchInputDataFormat = findViewById(R.id.switchEncryptInput);
-        switchInputDataFormat.setEnabled(false);
+        //todo remove this line
+        //switchInputDataFormat.setEnabled(false);
         Spinner spinnerOutputFormat = findViewById(R.id.spinnerOutputDataFormat);
         spinnerOutputFormat.setEnabled(false);
         switchPersistence = findViewById(R.id.switchPersistence);
@@ -135,7 +143,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             ContentValues values = new ContentValues();
             values.put(COLUMN_TARGET_APP_PACKAGE, getAuthorizedPackages());
             values.put(COLUMN_DATA_NAME, key);
-            values.put(COLUMN_DATA_VALUE, value);
             String persistData = switchPersistence.isChecked() ? "true" : "false";
             values.put(COLUMN_DATA_PERSIST_REQUIRED, persistData);
             Switch switchInputDataFormat = findViewById(R.id.switchEncryptInput);
@@ -143,18 +150,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             String inputDataFormat = encryptData ? "2" : "1";
             if (encryptData)
             {
-                //  todo create AES secret key
+                //  Our AES secret key
                 SecretKey secretKey = getRandomKey(KeyProperties.KEY_ALGORITHM_AES);
-                //  todo Encrypt data using secret key
-                final Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-                byte[] iv = cipher.getIV();
-                byte[] encryption = cipher.doFinal(value.getBytes("UTF-8"));
+                //  Encrypt data using secret key
+                final Cipher dataValueCipher = Cipher.getInstance("AES/GCM/NoPadding");
+                //final Cipher dataValueCipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING");
+                dataValueCipher.init(Cipher.ENCRYPT_MODE, secretKey);
+                //byte[] iv = cipher.getIV();
+                byte[] encryptedValue = dataValueCipher.doFinal(value.getBytes("UTF-8"));
+                values.put(COLUMN_DATA_VALUE, encryptedValue);
+
+                //  todo create the SSM public key as a Java key object??
+                //  todo all Demo videos use DataSecurity.jar but the techdocs do not refer to that.
+                //  https://stackoverflow.com/questions/5355466/converting-secret-key-into-a-string-and-vice-versa ???
+                //final Cipher ssmPublicKeyCipher = Cipher.getInstance("AES/GCM/NoPadding");
+                //ssmPublicKeyCipher.init(Cipher.ENCRYPT_MODE, SSM_PUBLIC_KEY);
                 //  todo Encrypt secure key using SSM public key
                 //  todo Insert encrypted secret key into SS query
-                values.put(COLUMN_ENCRYPTED_KEY, "REPLACE ME: Encrypted Secret Key");
+
+                //  Encrypt the SSM public key with our secret key and store this in the 'data_input_encrypted_key' column
+                byte[] encryptedSSMPublicKey = encryptDataWithPublicKey(SerializationUtils.serialize(secretKey), SSM_PUBLIC_KEY2);
+                //byte[] encryptedSSMPublicKey = dataValueCipher.doFinal(SSM_PUBLIC_KEY.getBytes("UTF-8"));
+                values.put(COLUMN_ENCRYPTED_KEY, encryptedSSMPublicKey);
             }
-            values.put(COLUMN_DATA_INPUT_FORM, inputDataFormat); //plain text =1
+            else
+            {
+                values.put(COLUMN_DATA_VALUE, value);
+            }
+            values.put(COLUMN_DATA_INPUT_FORM, inputDataFormat); //  plain text = 1, encrypted = 2
             Spinner spinnerOutputFormat = findViewById(R.id.spinnerOutputDataFormat);
             String outputFormat = "1"; //  plain text
             switch (spinnerOutputFormat.getSelectedItemPosition())
@@ -371,6 +394,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             e.printStackTrace();
         }
         return null;
+    }
+
+    //  Modified from: https://stackoverflow.com/questions/43532954/android-encrypting-string-using-rsa-public-key
+    static byte[] encryptDataWithPublicKey(byte[] data, String publicKey)
+    {
+        String encoded = "";
+        byte[] encrypted = null;
+        try {
+            //byte[] publicBytes = Base64.decode(publicKey, Base64.DEFAULT);
+            byte[] publicBytes = publicKey.getBytes("UTF8");
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey pubKey = keyFactory.generatePublic(keySpec);
+            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING"); //or try with "RSA"
+            //Cipher cipher = Cipher.getInstance("RSA"); //or try with "RSA"
+            cipher.init(Cipher.ENCRYPT_MODE, pubKey);
+            encrypted = cipher.doFinal(data);
+            //encoded = Base64.encodeToString(encrypted, Base64.DEFAULT);
+        }
+        catch (Exception e) {
+            //  todo this is giving Error parsing public key
+            e.printStackTrace();
+        }
+        return encrypted;
     }
 
 }

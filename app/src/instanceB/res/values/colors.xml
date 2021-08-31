@@ -15,4 +15,5 @@
     <color name="zebraWhite">#ffffff</color>
     <color name="zebraGray">#7A7A7A</color>
     <color name="zebraOrange">#FF8000</color>
+    <color name="zebraPrimary">#7A7A7A</color>
 </resources>

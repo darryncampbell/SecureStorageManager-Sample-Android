@@ -38,13 +38,12 @@ import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-   //  todo Question: I seem to get unexpected behaviour if I specify the current package in the list of target app packages.  Should I not do this?
-    //  todo Question: To delete a name/value inserted and shared between two apps I need to call delete twice, once for each content provider, is this how it is supposed to work?
-    //  todo Question: Why do I NEED to specify the data_persist_required element in query selection clause?  If I don't specify this, the cursor query returns nothing.  Am I using it correctly?
-    //  todo Question: The TARGET_APP column during query() returns a single package but the TARGET_APP column in insert takes multiple packages.
-    //  todo Question: Is Encryption implemented fully?  Would need to see a code sample of this rather than use trial and error.  (Thought I did my best)
-    //  todo Question: When will multi-instance be implemented?
-    //  todo Plans to persist files?  Per George, yes, this will be done but I'm unsure of the timeline.
+    //  todo Note: To delete a key shared between two apps I need to call delete twice, once for each content provider
+    //  todo Note: When deleting or querying a key, you need specify the data_persist_required element in query selection clause.
+    //  todo Note: The TARGET_APP column during query() returns a single package but the TARGET_APP column in insert takes multiple packages.
+    //  todo Note: This sample app does not cover file persistence.
+    //  todo Implement encryption when this is fully documented in techdocs.
+    //  todo Implement multi-instance when this is fully implemented & documented in techdocs.
     //  todo Update Readme
 
     private static final String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";
@@ -58,9 +57,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String COLUMN_MULTI_INSTANCE_REQUIRED = "multi_instance_required";
     private static final String COLUMN_ENCRYPTED_KEY = "data_input_encrypted_key";
     private static final String SSM_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwE1qxpfNZVGq3wfPp3AqSeSpCPi3NUC1cCBuh5nkPvC3TfYHiozsy3gBYyUoYWIoAYlgypehqLIQfdHTrLpsVbS1BW6mnv76WvYwmaGrGfHzi50ETA8bFDwkrboG3jcHnvDJPH904BdU5eMrsq1o+BDmTmF/OAm1rJPohb8mukWhjZ+o6OW6iNhO28IDRb26pKuTu6sckHn8I1I51bl44qaxq55A4wVR4mHEZL0EK/q2hY0Iqcak2dA8w8N0nJrWzbIbp5FeT/WyGO2pure7UxKEZfE5pkewPfcHSGpR+0sbdCMaw6KrDpC5jusry4PjFw92sS/Huywv6/pv7WVPmwIDAQAB";
-    private static final String SSM_PUBLIC_KEY2 = "-----BEGIN RSA PUBLIC KEY-----\n" +
-            "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwE1qxpfNZVGq3wfPp3AqSeSpCPi3NUC1cCBuh5nkPvC3TfYHiozsy3gBYyUoYWIoAYlgypehqLIQfdHTrLpsVbS1BW6mnv76WvYwmaGrGfHzi50ETA8bFDwkrboG3jcHnvDJPH904BdU5eMrsq1o+BDmTmF/OAm1rJPohb8mukWhjZ+o6OW6iNhO28IDRb26pKuTu6sckHn8I1I51bl44qaxq55A4wVR4mHEZL0EK/q2hY0Iqcak2dA8w8N0nJrWzbIbp5FeT/WyGO2pure7UxKEZfE5pkewPfcHSGpR+0sbdCMaw6KrDpC5jusry4PjFw92sS/Huywv6/pv7WVPmwIDAQAB\n" +
-            "-----END RSA PUBLIC KEY-----";
 
     private String currentPackage = "";
     Uri cpUri;
@@ -103,10 +99,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         txtName = findViewById(R.id.editName);
         txtValue = findViewById(R.id.editValue);
         Switch switchInputDataFormat = findViewById(R.id.switchEncryptInput);
-        //todo re-enable this when encryption is supported
         switchInputDataFormat.setEnabled(false);
         Spinner spinnerOutputFormat = findViewById(R.id.spinnerOutputDataFormat);
-        //  todo re-enable this when encryption is supported
         spinnerOutputFormat.setEnabled(false);
         switchPersistence = findViewById(R.id.switchPersistence);
 
@@ -162,13 +156,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 byte[] encryptedValue = dataValueCipher.doFinal(value.getBytes("UTF-8"));
                 values.put(COLUMN_DATA_VALUE, new String(encryptedValue));
 
-                //  todo create the SSM public key as a Java key object??
-                //  todo all Demo videos use DataSecurity.jar but the techdocs do not refer to that.
+                //  create the SSM public key as a Java key object??
                 //  https://stackoverflow.com/questions/5355466/converting-secret-key-into-a-string-and-vice-versa ???
                 //final Cipher ssmPublicKeyCipher = Cipher.getInstance("AES/GCM/NoPadding");
                 //ssmPublicKeyCipher.init(Cipher.ENCRYPT_MODE, SSM_PUBLIC_KEY);
-                //  todo Encrypt secure key using SSM public key
-                //  todo Insert encrypted secret key into SS query
+                //  Encrypt secure key using SSM public key
+                //  Insert encrypted secret key into SS query
 
                 //  Encrypt the SSM public key with our secret key and store this in the 'data_input_encrypted_key' column
                 byte[] encryptedSSMPublicKey = encryptDataWithPublicKey(SerializationUtils.serialize(secretKey), SSM_PUBLIC_KEY);
@@ -250,10 +243,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         try{
             String persistData = switchPersistence.isChecked() ? "true" : "false";
             Uri cpUriDelete = Uri.parse(AUTHORITY + "/[" + currentPackage + "]");
-            String whereClauseAll = null;
-            //  Other where clause examples:
-            String whereClauseSpecificKey = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "' AND " + COLUMN_DATA_NAME + " = 'key'";
-            int rowsAffected = getContentResolver().delete(cpUriDelete, whereClauseAll , null);
+            String selection = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "'" + "AND " + "data_persist_required = '" + persistData + "'";
+            int rowsAffected = getContentResolver().delete(cpUriDelete, selection , null);
             String message = "Deleted " + rowsAffected + " rows";
             dataStorageResult.setText(message);
             Log.i(LOG_TAG, message);
@@ -341,7 +332,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //  Return a JSON structure defining the package names and signatures that have permission to access the SSM data
         String targetAppPackageContent =
                 "{\"pkgs_sigs\": [" +
-                        //"{\"pkg\":\"" + currentPackage + "\",\"sig\":\"" + getCurrentPackageSignature() + "\"}," +
+                        "{\"pkg\":\"" + currentPackage + "\",\"sig\":\"" + getCurrentPackageSignature() + "\"}," +
                         "{\"pkg\":\"" + otherID + "\",\"sig\":\"" + getCurrentPackageSignature() + "\"}" +
                         "]}";
         return targetAppPackageContent;

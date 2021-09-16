@@ -42,8 +42,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     //  todo Note: When deleting or querying a key, you need specify the data_persist_required element in query selection clause.
     //  todo Note: The TARGET_APP column during query() returns a single package but the TARGET_APP column in insert takes multiple packages.
     //  todo Note: This sample app does not cover file persistence.
+    //  todo Question: Is there a limit on the size of the SSM an app can store?  Is there a limit on each value vs. the overall size?
+    //  todo Implement file observer to monitor the value of a content provider
     //  todo Implement encryption when this is fully documented in techdocs.
     //  todo Implement multi-instance when this is fully implemented & documented in techdocs.
+    //  todo Suggestion It be possible to clone the SSM files from one device to another.
     //  todo Update Readme
 
     private static final String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";

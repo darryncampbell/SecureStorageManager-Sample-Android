@@ -38,17 +38,6 @@ import javax.crypto.SecretKey;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    //  todo Note: To delete a key shared between two apps I need to call delete twice, once for each content provider
-    //  todo Note: When deleting or querying a key, you need specify the data_persist_required element in query selection clause.
-    //  todo Note: The TARGET_APP column during query() returns a single package but the TARGET_APP column in insert takes multiple packages.
-    //  todo Note: This sample app does not cover file persistence.
-    //  todo Question: Is there a limit on the size of the SSM an app can store?  Is there a limit on each value vs. the overall size?
-    //  todo Implement file observer to monitor the value of a content provider
-    //  todo Implement encryption when this is fully documented in techdocs.
-    //  todo Implement multi-instance when this is fully implemented & documented in techdocs.
-    //  todo Suggestion It be possible to clone the SSM files from one device to another.
-    //  todo Update Readme
-
     private static final String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";
     private static final String COLUMN_ORIG_APP_PACKAGE = "orig_app_package";
     private static final String COLUMN_TARGET_APP_PACKAGE = "target_app_package";
@@ -58,8 +47,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String COLUMN_DATA_OUTPUT_FORM = "data_output_form";
     private static final String COLUMN_DATA_PERSIST_REQUIRED = "data_persist_required";
     private static final String COLUMN_MULTI_INSTANCE_REQUIRED = "multi_instance_required";
-    private static final String COLUMN_ENCRYPTED_KEY = "data_input_encrypted_key";
-    private static final String SSM_PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwE1qxpfNZVGq3wfPp3AqSeSpCPi3NUC1cCBuh5nkPvC3TfYHiozsy3gBYyUoYWIoAYlgypehqLIQfdHTrLpsVbS1BW6mnv76WvYwmaGrGfHzi50ETA8bFDwkrboG3jcHnvDJPH904BdU5eMrsq1o+BDmTmF/OAm1rJPohb8mukWhjZ+o6OW6iNhO28IDRb26pKuTu6sckHn8I1I51bl44qaxq55A4wVR4mHEZL0EK/q2hY0Iqcak2dA8w8N0nJrWzbIbp5FeT/WyGO2pure7UxKEZfE5pkewPfcHSGpR+0sbdCMaw6KrDpC5jusry4PjFw92sS/Huywv6/pv7WVPmwIDAQAB";
 
     private String currentPackage = "";
     Uri cpUri;
@@ -101,10 +88,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnQuery.setOnClickListener(this);
         txtName = findViewById(R.id.editName);
         txtValue = findViewById(R.id.editValue);
-        Switch switchInputDataFormat = findViewById(R.id.switchEncryptInput);
-        switchInputDataFormat.setEnabled(false);
-        Spinner spinnerOutputFormat = findViewById(R.id.spinnerOutputDataFormat);
-        spinnerOutputFormat.setEnabled(false);
         switchPersistence = findViewById(R.id.switchPersistence);
 
         populatePackagesUI();
@@ -144,51 +127,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             values.put(COLUMN_DATA_NAME, key);
             String persistData = switchPersistence.isChecked() ? "true" : "false";
             values.put(COLUMN_DATA_PERSIST_REQUIRED, persistData);
-            Switch switchInputDataFormat = findViewById(R.id.switchEncryptInput);
-            boolean encryptData = switchInputDataFormat.isChecked();
-            String inputDataFormat = encryptData ? "2" : "1";
-            if (encryptData)
-            {
-                //  Our AES secret key
-                SecretKey secretKey = getRandomKey(KeyProperties.KEY_ALGORITHM_AES);
-                //  Encrypt data using secret key
-                final Cipher dataValueCipher = Cipher.getInstance("AES/GCM/NoPadding");
-                //final Cipher dataValueCipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING");
-                dataValueCipher.init(Cipher.ENCRYPT_MODE, secretKey);
-                //byte[] iv = cipher.getIV();
-                byte[] encryptedValue = dataValueCipher.doFinal(value.getBytes("UTF-8"));
-                values.put(COLUMN_DATA_VALUE, new String(encryptedValue));
-
-                //  create the SSM public key as a Java key object??
-                //  https://stackoverflow.com/questions/5355466/converting-secret-key-into-a-string-and-vice-versa ???
-                //final Cipher ssmPublicKeyCipher = Cipher.getInstance("AES/GCM/NoPadding");
-                //ssmPublicKeyCipher.init(Cipher.ENCRYPT_MODE, SSM_PUBLIC_KEY);
-                //  Encrypt secure key using SSM public key
-                //  Insert encrypted secret key into SS query
-
-                //  Encrypt the SSM public key with our secret key and store this in the 'data_input_encrypted_key' column
-                byte[] encryptedSSMPublicKey = encryptDataWithPublicKey(SerializationUtils.serialize(secretKey), SSM_PUBLIC_KEY);
-                //byte[] encryptedSSMPublicKey = dataValueCipher.doFinal(SSM_PUBLIC_KEY.getBytes("UTF-8"));
-                values.put(COLUMN_ENCRYPTED_KEY, encryptedSSMPublicKey);
-            }
-            else
-            {
-                values.put(COLUMN_DATA_VALUE, value);
-            }
-            values.put(COLUMN_DATA_INPUT_FORM, inputDataFormat); //  plain text = 1, encrypted = 2
-            Spinner spinnerOutputFormat = findViewById(R.id.spinnerOutputDataFormat);
-            String outputFormat = "1"; //  plain text
-            switch (spinnerOutputFormat.getSelectedItemPosition())
-            {
-                case (1):
-                    outputFormat = "2"; //  Encrypted
-                    break;
-                case (2):
-                    outputFormat = "3"; //  Keystrokes
-                    break;
-            }
-            values.put(COLUMN_DATA_OUTPUT_FORM, outputFormat);
-            values.put(COLUMN_MULTI_INSTANCE_REQUIRED, "false"); //  Not implemented yet
+            values.put(COLUMN_DATA_VALUE, value);
+            values.put(COLUMN_DATA_INPUT_FORM, "1"); //  plain text = 1, encrypted = 2
+            values.put(COLUMN_DATA_OUTPUT_FORM, "1");  //  plain text = 1, encrypted = 2, keystrokes = 3
+            values.put(COLUMN_MULTI_INSTANCE_REQUIRED, "false"); //  Not implemented in this sample
 
             Uri createdRow = getContentResolver().insert(cpUri, values);
             String message = "Inserted item at: " + createdRow.toString();
@@ -263,13 +205,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //  https://developer.android.com/reference/android/content/ContentProvider#query(android.net.Uri,%20java.lang.String[],%20java.lang.String,%20java.lang.String[],%20java.lang.String)
         Uri cpUriQuery = Uri.parse(AUTHORITY + "/[" + currentPackage + "]");
         String persistData = switchPersistence.isChecked() ? "true" : "false";
-
-
-        //String selection = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "'";
         String selection = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "'" + "AND " + "data_persist_required = '" + persistData + "'";
-        //String selection = COLUMN_TARGET_APP_PACKAGE + " = '" + BuildConfig.OtherAppId + "'" + "AND " + "data_persist_required = '" + persistData + "'"; <--  Can't do this
-        //String selection = COLUMN_TARGET_APP_PACKAGE + " = '" + BuildConfig.OtherAppId + "'" + "AND " + "data_persist_required = '" + persistData + "'";
-        //String selection = COLUMN_TARGET_APP_PACKAGE + " = '" + currentPackage + "'" + "AND " + "data_persist_required = '" + persistData + "'" + "AND " + "data_input_form = '" + "2" + "'";
         Cursor cursor = null;
         try {
             cursor = getContentResolver().query(cpUriQuery, null, selection, null, null);
@@ -330,6 +266,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return "unknown";
     }
 
+    //  This logic is specific to this app, assumption is we are targetting ourselves
+    //  (both flavours, total 2 packages).  Another assumption is that both app flavours have the same
+    //  signing key.
     private String getAuthorizedPackages() {
         String otherID = BuildConfig.OtherAppId;
         //  Return a JSON structure defining the package names and signatures that have permission to access the SSM data
@@ -382,46 +321,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             query();
     }
 
-    private SecretKey getRandomKey(String algorithmType)
-    {
-        SecureRandom rand = new SecureRandom();
-        KeyGenerator generator;
-        try {
-            generator = KeyGenerator.getInstance(algorithmType);
-            generator.init(128, rand);
-            SecretKey mSecretKey = generator.generateKey();
-            return mSecretKey;
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    //  Modified from: https://stackoverflow.com/questions/43532954/android-encrypting-string-using-rsa-public-key
-    static byte[] encryptDataWithPublicKey(byte[] data, String publicKey)
-    {
-        String encoded = "";
-        byte[] encrypted = null;
-        try {
-            //byte[] publicBytes = Base64.decode(publicKey, Base64.DEFAULT);
-
-            byte[] publicBytes = Base64.decodeBase64(publicKey);
-            //byte[] publicBytes = publicKey.getBytes();
-
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            PublicKey pubKey = keyFactory.generatePublic(keySpec);
-            Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING"); //or try with "RSA"
-            //Cipher cipher = Cipher.getInstance("RSA"); //or try with "RSA"
-            cipher.init(Cipher.ENCRYPT_MODE, pubKey);
-            encrypted = cipher.doFinal(data);
-            //encoded = Base64.encodeToString(encrypted, Base64.DEFAULT);
-        }
-        catch (Exception e) {
-            //  todo this is giving Error parsing public key
-            e.printStackTrace();
-        }
-        return encrypted;
-    }
 
 }

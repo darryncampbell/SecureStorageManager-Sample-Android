@@ -220,18 +220,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/editValue" />
 
-        <Spinner
-            android:id="@+id/spinnerOutputDataFormat"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            android:entries="@array/outputForms"
-            app:layout_constraintEnd_toEndOf="@id/switchPersistence"
-            app:layout_constraintStart_toEndOf="@+id/lblOutputFormat"
-            app:layout_constraintTop_toBottomOf="@+id/switchEncryptInput" />
-
         <TextView
             android:id="@+id/lblDataStorageResult"
             android:layout_width="wrap_content"
@@ -240,7 +228,7 @@
             android:layout_marginTop="8dp"
             android:text="Result:"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/spinnerOutputDataFormat" />
+            app:layout_constraintTop_toBottomOf="@+id/switchPersistence" />
 
         <TextView
             android:id="@+id/txtDataStorageResult"
@@ -255,7 +243,7 @@
             android:text="Output from SSM will appear here"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/lblDataStorageResult"
-            app:layout_constraintTop_toBottomOf="@+id/spinnerOutputDataFormat" />
+            app:layout_constraintTop_toBottomOf="@+id/switchPersistence" />
 
         <Button
             android:id="@+id/btnInsert"
@@ -286,37 +274,6 @@
             android:text="Delete All"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/txtDataStorageResult" />
-
-        <Switch
-            android:id="@+id/switchEncryptInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            android:text="Encrypted?"
-            app:layout_constraintEnd_toEndOf="@id/switchPersistence"
-            app:layout_constraintStart_toEndOf="@+id/lblOutputFormat"
-            app:layout_constraintTop_toBottomOf="@+id/switchPersistence" />
-
-
-        <TextView
-            android:id="@+id/lblInputFormat"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Input Data Format: "
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/switchEncryptInput" />
-
-        <TextView
-            android:id="@+id/lblOutputFormat"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Output Data Format: "
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/spinnerOutputDataFormat" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -19,7 +19,8 @@ For more information about how Scoped Storage affects enterprise applications an
 - Exchanging that name-value pair with another application
 - Updating a name-value pair that has been shared with another app
 - Deleting a name-value pair
-- Persisting the name-value pair across an Enterprise reset
+- Persisting the name-value pair across an Enterprise reset.  
+  - There is a StageNow barcode to initiate an Enterprise Reset under the /media folder.  Or alternatively, you can initiate an Enterprise reset from the Android settings
 
 **This application does NOT demonstrate the following:**
 
@@ -47,6 +48,7 @@ The following queries provider is required in your Manifest to access SSM on And
     <provider android:authorities="com.zebra.securestoragemanager.securecontentprovider" />
 </queries>
 ```
+# The Sample app
 
 ## Structure of the Sample app
 
@@ -54,9 +56,27 @@ In order to best demonstrate exchange of data between apps, you need more than o
 
 This sample has two app flavors, each flavor generating an app with a different package name, app name and colour scheme.
 
-![Application A](/assets/images/tux.png)
+![Application A](https://github.com/darryncampbell/SecureStorageManager-Sample-Android/raw/main/media/appa_onlaunch.png)
+![Application B](https://github.com/darryncampbell/SecureStorageManager-Sample-Android/raw/main/media/appb_onlaunch.png)
 
+To build both app flavours just run  `gradlew build` or use the Build Variants window to select the desired variant and launch via Android Studio.  **Note** this sample assumes that both apps will be signed with the same signature, if you just use the debug builds you will not have to worry about this.
 
+## Using the Sample app
+
+1. Build and install both sample app flavours
+2. From app A, modify the `name` and `data` fields
+3. Press `Insert` in App A
+4. Press `Query` in App A.  Observe that your data is retrieved
+5. Launch app B
+6. Press `Query` in app B.  Observe that your data is retrieved
+7. Launch app A
+8. Modify the `value` field and press `Update`
+9. Press `Query` in both app A and app B.  Observe that the data is modified
+10. Press `Delete All` in app A.
+11. Press `Query` in both app A and app B.  Observe that the data is **only** deleted from app A.  App A cannot delete data after it has created it, App A can only modify that data.
+12. Press `Delete App` in app B.  Observe using `Query` that the data is now also deleted from app B.
+
+# The Code
 
 ## Specifying the application(s) which can receive 
 
@@ -81,33 +101,93 @@ SSM takes a JSON object defining the package name and signature:
 }
 ```
 
+## Inserting Data
+
+Inserting data into SSM is achieved as follows:
+
+```java
+private String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";
+Uri cpUri = Uri.parse(AUTHORITY);
+ContentValues values = new ContentValues();
+values.put("target_app_package", getPackages());  //  JSON object defined above
+values.put("data_name", "key");
+values.put("data_value", "value");
+values.put("data_persist_required", "false");  //  or true to persist across an Enterprise Reset
+values.put("data_input_form", "1"); //  plain text = 1
+values.put("data_output_form", "1");  //  plain text = 1
+values.put("multi_instance_required", "false"); //  Must be false
+Uri createdRow = getContentResolver().insert(cpUri, values);
+```
+
+**Usage Notes for Insert Data**
+* Persisted data should be considered completely separate from non-persisted data.  You can have two identical keys, one persisted and one not-persisted and SSM will treat these data items separately.
+* See also the [techdocs sample](https://techdocs.zebra.com/ssm/1-0/guide/api/#samplecode)
+* The size of data is limited to around 10KB per name-value pair but the number of name-value pairs which can be written has no theoretical limit.
+
+## Updating Data
+
+```java
+private String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";
+Uri cpUri = Uri.parse(AUTHORITY);
+ContentValues values = new ContentValues();
+values.put("target_app_package", getPackages());  //  JSON object defined above
+values.put("data_name", "key");
+values.put("data_value", "value_modified");
+values.put("data_persist_required", "false");  //  or true to persist across an Enterprise Reset
+int updatedRecords = getContentResolver().update(cpUri, values, null , null);
+```
+
+**Usage Notes for Update Data**
+* See also the [techdocs sample](https://techdocs.zebra.com/ssm/1-0/guide/api/#samplecode)
+* You must specify whether the data you are updating was previously persisted or not
+
+## Querying Data
+
+```java
+private String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";
+Uri cpUriQuery = Uri.parse(AUTHORITY + "/[" + getPackageName() + "]");
+String selection = "target_app_package = '" + getPackageName() + "'" + "AND " + "data_persist_required = 'false'";
+Cursor cursor = null;
+cursor = getContentResolver().query(cpUriQuery, null, selection, null, null);
+if (cursor != null && cursor.moveToFirst()) {
+  StringBuilder strBuild = new StringBuilder();
+  String queryResults = "Entries found: " + cursor.getCount() + "\n";
+  while (!cursor.isAfterLast()) {
+    String record = "\n";
+    record += "Original app: " + cursor.getString(cursor.getColumnIndex("orig_app_package")) + "\n";
+    record += "Target app: " + cursor.getString(cursor.getColumnIndex("target_app_package")) + "\n";
+    record += "Data Name : " + cursor.getString(cursor.getColumnIndex("data_name")) + "\n";
+    record += "Data Value: " + cursor.getString(cursor.getColumnIndex("data_value")) + "\n";
+    record += "Input  form: " + convertInputForm(cursor.getString(cursor.getColumnIndex("data_input_form"))) + "\n";
+    record += "Output form: " + convertOutputForm(cursor.getString(cursor.getColumnIndex("data_output_form"))) + "\n";
+    record += "Persistent?: " + cursor.getString(cursor.getColumnIndex("data_persist_required")) + "\n";
+    queryResults += record;
+    cursor.moveToNext();
+  }
+  Log.d(LOG_TAG, "Query data: " + strBuild);
+} else {
+  Log.i(LOG_TAG, "No Records Found");
+}
+cursor.close();
+```
+
+**Usage Notes for Query Data**
+* The target_app_package column will only return a single package in the current implementation, even though multiple packages were targeted.
+* This app only supports plain text input and output but the input and output form fields are read for completeness
 
 
+## Deleting Data
 
+```java
+private String AUTHORITY = "content://com.zebra.securestoragemanager.securecontentprovider/data";
+Uri cpUriDelete = Uri.parse(AUTHORITY + "/[" + getPackageName() + "]");
+String selection = "target_app_package = '" + getPackageName() + "'" + "AND " + "data_persist_required = 'false'";  //  or true to persist across an Enterprise Reset
+int rowsDeleted = getContentResolver().delete(cpUriDelete, selection , null);
+```
 
-
-
-
-`gradlew build`
-
-## Techdocs
-
-
-## Notes from top of file:
-    //  todo Note: To delete a key shared between two apps I need to call delete twice, once for each content provider
-    //  todo Note: When deleting or querying a key, you need specify the data_persist_required element in query selection clause.
-    //  todo Note: The TARGET_APP column during query() returns a single package but the TARGET_APP column in insert takes multiple packages.
-    //  todo Note: This sample app does not cover file persistence.
-    //  todo Question: Is there a limit on the size of the SSM an app can store?  Is there a limit on each value vs. the overall size?
-    //  todo Implement file observer to monitor the value of a content provider --> https://stackoverflow.com/questions/3436682/android-how-to-receive-callback-from-content-provider-when-data-chanandroid ges
-    //  todo Implement encryption when this is fully documented in techdocs.
-    //  todo Implement multi-instance when this is fully implemented & documented in techdocs.
-    //  todo Suggestion It be possible to clone the SSM files from one device to another.
-
-
-## Other notes
-- A11 changes
-- Functions not included
+**Usage Notes for Delete Data**
+* You must specify whether the data you are deleting was previously persisted or not
+* You can only delete data associated with your own package name (as defined in the Uri and selection)
 
 
 

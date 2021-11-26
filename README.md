@@ -122,7 +122,8 @@ Uri createdRow = getContentResolver().insert(cpUri, values);
 **Usage Notes for Insert Data**
 * Persisted data should be considered completely separate from non-persisted data.  You can have two identical keys, one persisted and one not-persisted and SSM will treat these data items separately.
 * See also the [techdocs sample](https://techdocs.zebra.com/ssm/1-0/guide/api/#samplecode)
-* The size of data is limited to around 10KB per name-value pair but the number of name-value pairs which can be written has no theoretical limit.
+* The size of data is limited to around 10KB per name-value pair.  
+* The number of name-value pairs is only limited by the size of the device storage (either internal storage or the /enterprise partition for persistent values).
 
 ## Updating Data
 

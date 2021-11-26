@@ -73,7 +73,7 @@ To build both app flavours just run  `gradlew build` or use the Build Variants w
 8. Modify the `value` field and press `Update`
 9. Press `Query` in both app A and app B.  Observe that the data is modified
 10. Press `Delete All` in app A.
-11. Press `Query` in both app A and app B.  Observe that the data is **only** deleted from app A.  App A cannot delete data after it has created it, App A can only modify that data.
+11. Press `Query` in both app A and app B.  Observe that the data is **only** deleted from app A.
 12. Press `Delete App` in app B.  Observe using `Query` that the data is now also deleted from app B.
 
 # The Code
